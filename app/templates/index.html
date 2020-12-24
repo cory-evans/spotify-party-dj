@@ -1,0 +1,39 @@
+{% extends 'layouts/base.html' %} {% block head %}
+<link rel="stylesheet" href="/static/css/index.css" />
+{% endblock %} {% block content %}
+<main class="container-fluid">
+	<input type="text" name="search" id="input-search" />
+	<button class="btn btn-primary" onclick="search();">Search</button>
+	<ul id="songs">
+		<li>title - artist</li>
+	</ul>
+</main>
+
+<script>
+	function search() {
+		var input = document.getElementById('input-search')
+		var q = input.value
+		input.value = ''
+
+		fetch('/api/search?q=' + q)
+			.then((response) => response.json())
+			.then((data) => parse(data))
+	}
+
+	function parse(data) {
+		const list = document.getElementById('songs')
+		list.innerHTML = ''
+
+		data.forEach((track) => {
+			var title = track.name
+
+			var artist = track.artists[0].name
+
+			var li = document.createElement('li')
+			li.innerHTML = title + ' - ' + artist
+
+			list.appendChild(li)
+		})
+	}
+</script>
+{% endblock %}

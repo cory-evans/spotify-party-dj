@@ -1,0 +1,17 @@
+.icon {
+	font-size: 100%;
+}
+
+#chat ul {
+	list-style-type: none;
+}
+
+#chat .chat-message {
+	width: 80%;
+}
+
+#chat .chat-message-me {
+	text-align: right;
+	margin-right: 0;
+	margin-left: auto;
+}
