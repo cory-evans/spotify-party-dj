@@ -1,0 +1,69 @@
+{% extends 'layouts/base.html' %} {% block head %}
+<script src="/static/js/party.js"></script>
+{% endblock %} {% block content %}
+<main class="container-fluid">
+	<div class="row">
+		<div class="col-sm-3"></div>
+		<div class="col-sm-6">
+			<div class="row row-cols-1">
+				<div class="col">
+					<img class="w-100" id="current-album-art" />
+					<div class="mt-3">
+						<h1 id="song-title" class="text-center"></h1>
+						<h3 id="song-artist" class="text-center"></h3>
+						<h6 id="song-album" class="text-center text-gray"></h6>
+					</div>
+				</div>
+				<div class="col">
+					<div class="row">
+						<div class="col-6 fs-3 text-center" onclick="show_queue()">
+							<i id="queue-icon" class="bi-list text-primary"></i>
+						</div>
+						<div class="col-6 fs-3 text-center" onclick="show_search()">
+							<i id="search-icon" class="bi-search"></i>
+						</div>
+					</div>
+				</div>
+				<div class="col position-relative">
+					<div id="party-queue">queue</div>
+
+					<div id="party-search" class="d-none">search</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-sm-3"></div>
+	</div>
+</main>
+
+<script>
+	var queue_icon = document.getElementById('queue-icon')
+	var search_icon = document.getElementById('search-icon')
+	var party_queue = document.getElementById('party-queue')
+	var party_search = document.getElementById('party-search')
+	function show_queue() {
+		// make search icon inactive
+		search_icon.classList.remove('text-primary')
+
+		// make queue icon active
+		queue_icon.classList.add('text-primary')
+
+		// make party-search invisable
+		party_search.classList.add('d-none')
+		// make party-queue visable
+		party_queue.classList.remove('d-none')
+	}
+
+	function show_search() {
+		// make queue icon inactive
+		queue_icon.classList.remove('text-primary')
+
+		// make search icon active
+		search_icon.classList.add('text-primary')
+
+		// make party-queue invisable
+		party_queue.classList.add('d-none')
+		// make party-search visable
+		party_search.classList.remove('d-none')
+	}
+</script>
+{% endblock %}

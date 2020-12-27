@@ -1,39 +1,27 @@
 {% extends 'layouts/base.html' %} {% block head %}
 <link rel="stylesheet" href="/static/css/index.css" />
+<script src="/static/js/index.js"></script>
 {% endblock %} {% block content %}
 <main class="container-fluid">
-	<input type="text" name="search" id="input-search" />
-	<button class="btn btn-primary" onclick="search();">Search</button>
-	<ul id="songs">
-		<li>title - artist</li>
-	</ul>
+	<div class="row pt-2">
+		<div class="col-sm-5"></div>
+		<div class="col-sm-2">
+			<div class="d-grid gap-2">
+				<input
+					id="input-party-code"
+					class="form-control text-center text-uppercase"
+					type="text"
+					placeholder="Party Code"
+				/>
+				<button class="btn btn-primary btn-lg" onclick="join_room()">Join</button>
+			</div>
+			<hr />
+			<div class="mt-2 d-grid gap-2">
+				<button class="btn btn-primary btn-lg" onclick="host_room()">Host</button>
+			</div>
+		</div>
+		<div class="col-sm-5"></div>
+	</div>
 </main>
 
-<script>
-	function search() {
-		var input = document.getElementById('input-search')
-		var q = input.value
-		input.value = ''
-
-		fetch('/api/search?q=' + q)
-			.then((response) => response.json())
-			.then((data) => parse(data))
-	}
-
-	function parse(data) {
-		const list = document.getElementById('songs')
-		list.innerHTML = ''
-
-		data.forEach((track) => {
-			var title = track.name
-
-			var artist = track.artists[0].name
-
-			var li = document.createElement('li')
-			li.innerHTML = title + ' - ' + artist
-
-			list.appendChild(li)
-		})
-	}
-</script>
 {% endblock %}

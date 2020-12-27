@@ -1,25 +1,21 @@
-from werkzeug.utils import import_string
-
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 
-from app.views import core, api
-
-
-db = SQLAlchemy()
+from app.views import core, party
+from app.exts import scheduler, db, socketio
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object('app.settings.DevelopmentConfig')
 
     # Register views
-    app.register_blueprint(
-        core.bp
-    )
-    app.register_blueprint(
-        api.bp
-    )
+    for package in [core, party]:
+        app.register_blueprint(package.bp)
 
+    db.app = app
     db.init_app(app)
+    socketio.init_app(app)
+
+    scheduler.init_app(app)
+    scheduler.start()
 
     return app
