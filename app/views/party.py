@@ -62,15 +62,40 @@ def currently_playing():
     else:
         print('no track')
 
+@socketio.on('vote skip')
+def vote_to_skip(state):
+    spotify = util.spotify()
+    user = spotify.me()['display_name']
+    print(user, 'is skipping:', state)
+    if state:
+        v = models.VoteToSkip(
+            party_id=session.get('code'),
+            user=user
+        )
+
+        db.session.add(v)
+    else:
+        db.session.query(models.VoteToSkip).filter_by(
+            user=user
+        ).delete()
+    db.session.commit()
+
+    socketio.emit('vote skip', user, room=session.get('code'))
+
 def update_currently_playing(room):
     spotify = util.get_party_host_spotify(room)
 
     track = spotify.current_user_playing_track()
-    # next_run_time = datetime.datetime.now() + datetime.timedelta(milliseconds=track['item']['duration_ms'] - track['progress_ms'])
 
     socketio.emit('player current', track, room=room)
 
     party = models.Party.query.get(room)
+
+    if party.currently_playing and json.loads(party.currently_playing)['item']['uri'] != track['item']['uri']:
+        db.session.query(models.VoteToSkip).filter_by(
+            party_id=room
+        ).delete()
+
     party.currently_playing = json.dumps(track)
 
     db.session.commit()
