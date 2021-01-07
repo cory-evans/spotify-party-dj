@@ -1,7 +1,5 @@
-bcrypt
 flask
 flask-sqlalchemy
-psycopg2-binary
-Flask-APScheduler
+Flask-Caching
 flask-socketio
-spotipy
+psycopg2-binary

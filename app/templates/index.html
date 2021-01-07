@@ -1,27 +1,34 @@
-{% extends 'layouts/base.html' %} {% block head %}
-<link rel="stylesheet" href="/static/css/index.css" />
+{% extends 'layouts/base.html' %}
+{% from "macros/mediaplayer.html" import mediaplayer %}
+{% block head %}
 <script src="/static/js/index.js"></script>
-{% endblock %} {% block content %}
-<main class="container-fluid">
-	<div class="row pt-2">
-		<div class="col-sm-5"></div>
-		<div class="col-sm-2">
-			<div class="d-grid gap-2">
-				<input
-					id="input-party-code"
-					class="form-control text-center text-uppercase"
-					type="text"
-					placeholder="Party Code"
-				/>
-				<button class="btn btn-primary btn-lg" onclick="join_room()">Join</button>
-			</div>
-			<hr />
-			<div class="mt-2 d-grid gap-2">
-				<button class="btn btn-primary btn-lg" onclick="host_room()">Host</button>
+{% endblock %}
+{% block content %}
+<main class="container-fluid mt-3">
+	<div class="row">
+		<div class="col-sm-6">
+			{{ mediaplayer() }}
+		</div>
+
+		<div class="col-sm-6">
+			<div class="row">
+				<div class="col">
+					<input class="form-control" type="text" placeholder="Search...">
+					<hr>
+					<ul id="search-results" class="list-group list-group-flush">
+						<li class="list-group-item list-group-item-action">
+							Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam, consequuntur!
+						</li>
+						<li class="list-group-item list-group-item-action">
+							Lorem ipsum dolor sit, amet consectetur adipisicing.
+						</li>
+						<li class="list-group-item list-group-item-action">
+							Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam.
+						</li>
+					</ul>
+				</div>
 			</div>
 		</div>
-		<div class="col-sm-5"></div>
 	</div>
 </main>
-
 {% endblock %}

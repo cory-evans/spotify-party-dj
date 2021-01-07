@@ -1,0 +1,19 @@
+{% macro mediaplayer() %}
+
+<script src="/static/js/player.js"></script>
+
+<img src="" alt="album-image" id="album-image">
+<h1 id="song-title"></h1>
+<h2 id="song-artists"></h2>
+<h3 id="song-album"></h3>
+
+<div class="row">
+	<div class="col">
+		<h1>Queue</h1>
+		<ul id="next-tracks" class="list-group list-group-flush">
+
+		</ul>
+	</div>
+</div>
+
+{% endmacro %}

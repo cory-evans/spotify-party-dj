@@ -23,7 +23,7 @@ def auth_manager(cache_path=None):
         cache_path = session_cache_path()
 
     return spotipy.oauth2.SpotifyOAuth(
-        scope='user-read-currently-playing playlist-modify-private',
+        scope='streaming user-read-email user-read-private',
         cache_path=cache_path,
         show_dialog=True,
         client_id=current_app.config.get('SPOTIFY_CLIENT_ID'),

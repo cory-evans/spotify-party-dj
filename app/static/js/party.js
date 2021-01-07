@@ -1,68 +1,44 @@
 var socket = io()
+var player
 
-socket.on('connect', () => {
-	socket.emit('player current')
-})
+window.onSpotifyWebPlaybackSDKReady = async () => {
+	console.log('token is', token)
+	const player_init = new Spotify.Player({
+		name: 'Party DJ Web Player',
+		getOAuthToken: cb => { cb(token) }
+	})
 
-socket.on('player current', (track) => {
-	console.log(track)
-	var context = track.context
-	var item = track.item
+	player_init.addListener('initialization_error', ({ message }) => { console.error(message); });
+	player_init.addListener('authentication_error', ({ message }) => { console.error(message); });
+	player_init.addListener('account_error', ({ message }) => { console.error(message); });
+	player_init.addListener('playback_error', ({ message }) => { console.error(message); });
 
-	var album = item.album
+	player_init.addListener('player_state_changed', state => {
+		socket.emit('state_change', (state))
+	 })
+	player_init.addListener('ready', ({ device_id }) => {
+		console.log('Ready with device ID', device_id)
+	})
 
-	document.getElementById('song-title').innerHTML = item.name
+	player_init.addListener('not_ready', ({ device_id }) => {
+		console.log('Device ID has gone offline', device_id)
+	})
 
-	if (album.images.length > 0) {
-		document.getElementById('current-album-art').src = album.images[0].url
-	}
-
-	if (item.artists.length > 0) {
-		var song_artist = document.getElementById('song-artist')
-
-		song_artist.innerHTML = item.artists[0].name
-	}
-
-	document.getElementById('song-album').innerHTML = album.name
-})
-
-function toggle_liked_song() {
-	var icon = document.getElementById('button-like-song')
-	var currently_liked = icon.classList.contains('bi-heart-fill')
-	if (currently_liked) {
-		icon.classList.remove('bi-heart-fill')
-		icon.classList.add('bi-heart')
-	} else {
-		icon.classList.remove('bi-heart')
-		icon.classList.add('bi-heart-fill')
-	}
+	player_init.connect()
+	player = player_init
 }
 
-function toggle_skip_song() {
-	var icon = document.getElementById('button-skip-song')
-	var currently_active = icon.classList.contains('bi-skip-forward-fill')
-	if (currently_active) {
-		// disable
-		icon.classList.remove('bi-skip-forward-fill')
-		icon.classList.add('bi-skip-forward')
+async function getOAuthToken(access_token) {
+	let token = await fetch('/auth/refresh_token', {
+			method: 'POST',
+			body: JSON.stringify({token: access_token}),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		}
+	)
+	.then(resp => resp.json())
+	.then(json => json['access_token'])
 
-		socket.emit('vote skip', false)
-	} else {
-		// enable
-		icon.classList.remove('bi-skip-forward')
-		icon.classList.add('bi-skip-forward-fill')
-
-		socket.emit('vote skip', true)
-	}
-}
-
-function set_liked_song(state) {
-	var icon = document.getElementById('button-skip-song')
-	if (state) {
-		icon.classList.remove('bi-skip-forward-fill')
-		icon.classList.add('bi-skip-forward')
-	} else {
-		icon.classList.remove('bi-skip-forward')
-		icon.classList.add('bi-skip-forward-fill')
-	}
+	return token
 }

@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
-from flask_apscheduler import APScheduler
 from flask_socketio import SocketIO
+from flask_caching import Cache
 
-scheduler = APScheduler()
+cache = Cache()
 db = SQLAlchemy()
 socketio = SocketIO()

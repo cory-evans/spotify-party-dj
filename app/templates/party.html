@@ -1,87 +1,15 @@
-{% extends 'layouts/base.html' %} {% block head %}
-<script src="/static/js/party.js"></script>
-{% endblock %} {% block content %}
-<main class="container-fluid mt-3">
-	<div class="row">
-		<div class="col-sm-3"></div>
-		<div class="col-sm-6">
-			<div class="row row-cols-1">
-				<div class="col">
-					<img class="rounded mx-auto d-block" id="current-album-art" />
-					<div class="row mt-3">
-						<div class="col-2 d-flex justify-content-end align-items-center">
-							<i
-								id="button-like-song"
-								class="p-2 bi-heart fs-1 text-success"
-								style="cursor: pointer"
-								onclick="toggle_liked_song()"
-							></i>
-						</div>
-						<div class="col-8">
-							<h1 id="song-title" class="text-center"></h1>
-							<h3 id="song-artist" class="text-center"></h3>
-							<h6 id="song-album" class="text-center text-gray"></h6>
-						</div>
-						<div class="col-2 d-flex justify-content-start align-items-center">
-							<i
-								id="button-skip-song"
-								class="p-2 bi-skip-forward fs-1"
-								style="cursor: pointer"
-								onclick="toggle_skip_song();"
-							></i>
-						</div>
-					</div>
-				</div>
-				<div class="col">
-					<div class="row">
-						<div class="col-6 fs-3 text-center" onclick="show_queue()">
-							<i id="queue-icon" class="bi-list text-primary"></i>
-						</div>
-						<div class="col-6 fs-3 text-center" onclick="show_search()">
-							<i id="search-icon" class="bi-search"></i>
-						</div>
-					</div>
-				</div>
-				<div class="col position-relative">
-					<div id="party-queue">queue</div>
-
-					<div id="party-search" class="d-none">search</div>
-				</div>
-			</div>
-		</div>
-		<div class="col-sm-3"></div>
-	</div>
-</main>
-
+{% extends 'layouts/base.html' %}
+{% from "macros/mediaplayer.html" import mediaplayer %}
+{% block head %}
 <script>
-	var queue_icon = document.getElementById('queue-icon')
-	var search_icon = document.getElementById('search-icon')
-	var party_queue = document.getElementById('party-queue')
-	var party_search = document.getElementById('party-search')
-	function show_queue() {
-		// make search icon inactive
-		search_icon.classList.remove('text-primary')
-
-		// make queue icon active
-		queue_icon.classList.add('text-primary')
-
-		// make party-search invisable
-		party_search.classList.add('d-none')
-		// make party-queue visable
-		party_queue.classList.remove('d-none')
-	}
-
-	function show_search() {
-		// make queue icon inactive
-		queue_icon.classList.remove('text-primary')
-
-		// make search icon active
-		search_icon.classList.add('text-primary')
-
-		// make party-queue invisable
-		party_queue.classList.add('d-none')
-		// make party-search visable
-		party_search.classList.remove('d-none')
-	}
+	const token = "{{ g.user['access_token'] }}"
 </script>
+<script src="/static/js/party.js"></script>
+{% endblock %}
+
+{% block content %}
+<script src="https://sdk.scdn.co/spotify-player.js"></script>
+<div class="container-fluid">
+	{{ mediaplayer() }}
+</div>
 {% endblock %}

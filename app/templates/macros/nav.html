@@ -1,4 +1,5 @@
-{% macro nav_link(endpoint, text, class) %} {% if request.endpoint == endpoint %}
+{% macro nav_link(endpoint, text, class) %}
+{% if request.endpoint == endpoint %}
 <li class="nav-item {{ class }}">
 	<a class="nav-link text-light" href="{{ url_for(endpoint) }}"
 		>{{ text }} <span class="visually-hidden">(current)</span></a
@@ -6,5 +7,7 @@
 </li>
 {% else %}
 <li class="nav-item {{ class }}">
-	<a class="nav-link" href="{{ url_for(endpoint) }}">{{ text }}</a> {% endif %} {% endmacro %}
+	<a class="nav-link" href="{{ url_for(endpoint) }}">{{ text }}</a>
 </li>
+{% endif %}
+{% endmacro %}

@@ -20,7 +20,7 @@
 			integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW"
 			crossorigin="anonymous"
 		></script>
-		<script src="https://kit.fontawesome.com/a23053f34a.js" crossorigin="anonymous"></script>
+		<!-- <script src="https://kit.fontawesome.com/a23053f34a.js" crossorigin="anonymous"></script> -->
 		<script
 			src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
 			integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
@@ -34,8 +34,11 @@
 			<a href="/" class="navbar-brand">Party DJ</a>
 
 			<ul class="navbar-nav w-100">
-				{{ nav_link('core.index', 'home') }} {% if not g.user %} {{ nav_link('core.login', 'login',
-				'ms-sm-auto') }} {% else %}
+				{{ nav_link('core.index', 'home') }}
+				{% if not g.user %}
+				{{ nav_link('auth.login', 'login', 'ms-sm-auto') }}
+				{% else %}
+				{{ nav_link('party.party', 'party') }}
 				<li class="ms-sm-auto nav-item dropdown">
 					<a
 						href="#"
@@ -54,7 +57,7 @@
 					</a>
 					<ul class="dropdown-menu" style="left: -64px" aria-labelledby="navbarDropdown">
 						<li>
-							<a href="{{ url_for('core.logout') }}" class="dropdown-item">Logout</a>
+							<a href="{{ url_for('auth.logout') }}" class="dropdown-item">Logout</a>
 						</li>
 					</ul>
 				</li>
