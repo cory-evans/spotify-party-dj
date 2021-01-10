@@ -1,7 +1,11 @@
+import logging
 from flask import Flask
 
 from app.views import core, party, auth
 from app.exts import cache, db, socketio
+
+logger = logging.getLogger('werkzeug')
+logger.setLevel(logging.ERROR)
 
 def create_app():
     app = Flask(__name__)

@@ -28,7 +28,7 @@ def auth_manager(cache_path=None):
         show_dialog=True,
         client_id=current_app.config.get('SPOTIFY_CLIENT_ID'),
         client_secret=current_app.config.get('SPOTIFY_CLIENT_SECRET'),
-        redirect_uri='http://' + current_app.config.get('SERVER_NAME') + '/login_after'
+        redirect_uri='https://' + current_app.config.get('SERVER_NAME') + '/login_after'
     )
 
 def spotify(cache_path=None):

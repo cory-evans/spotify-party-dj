@@ -42,3 +42,23 @@ async function getOAuthToken(access_token) {
 
 	return token
 }
+
+setInterval(async () => {
+	// check for the end of a song and tell the server to queue the next item
+	if (!player) {
+		return
+	}
+
+	var state = await player.getCurrentState()
+
+	if (!state || state.paused) {
+		return
+	}
+
+	var time_left = state.duration - state.position
+
+	if (time_left <= 4500) {
+		socket.emit('queue next')
+	}
+
+}, 4500);

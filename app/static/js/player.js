@@ -3,6 +3,11 @@ var socket = io()
 socket.on('state_change', (state) => {
 	console.log(state)
 
+	if (!('track_window' in state)) {
+		console.error('track_window not in state')
+		return
+	}
+
 	var current_track = state.track_window.current_track
 	var queue = state.track_window.next_tracks
 

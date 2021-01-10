@@ -1,4 +1,5 @@
 import json
+import datetime
 from app.exts import db
 
 class User(db.Model):
@@ -38,3 +39,17 @@ class User(db.Model):
             'scope': self.scope,
             'token_type': self.token_type
         })
+
+class Queue(db.Model):
+    __tablename__ = 'queue'
+    id = db.Column(db.Integer, primary_key=True, auto_increment=True)
+    track_uri = db.Column(db.String)
+    date_added = db.Column(db.DateTime, default=datetime.datetime.now)
+    next_playable = db.Column(db.DateTime, default=datetime.datetime.now)
+
+
+class VoteToSkip(db.Model):
+    __tablename__ = 'voteskip'
+
+    client_id = db.Column(db.String)
+    queue_id = db.Column(db.Integer, db.ForeignKey('queue.id'))

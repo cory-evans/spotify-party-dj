@@ -22,15 +22,14 @@ bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @bp.route('/login')
 def login():
-    # auth_manager = util.auth_manager()
-    scopes = 'streaming user-read-email user-read-private'
+    scopes = 'streaming user-modify-playback-state user-read-email user-read-private'
 
     print(scopes)
 
     params = {
         'client_id': current_app.config.get('SPOTIFY_CLIENT_ID'),
         'response_type': 'code',
-        'redirect_uri': 'http://' + current_app.config.get('SERVER_NAME') + '/auth/login_after',
+        'redirect_uri': 'https://' + current_app.config.get('SERVER_NAME') + '/auth/login_after',
         'state': '17e627261463283b6c61873576e1ef5c',  # TODO make this random
         'scope': scopes
     }
@@ -55,7 +54,7 @@ def login_after():
     params = {
         'grant_type': 'authorization_code',
         'code': code,
-        'redirect_uri': 'http://' + current_app.config.get('SERVER_NAME') + '/auth/login_after'
+        'redirect_uri': 'https://' + current_app.config.get('SERVER_NAME') + '/auth/login_after'
     }
     resp = requests.post(
         'https://accounts.spotify.com/api/token',

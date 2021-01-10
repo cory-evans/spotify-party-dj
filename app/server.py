@@ -1,3 +1,5 @@
+import uuid
+
 from flask import session, g, request
 from app import (
     create_app,
@@ -22,6 +24,9 @@ def before_request():
         u = models.User.query.get(session.get('id'))
         if u:
             g.user = u.to_dict()
+
+    if not session.get('client_id'):
+        session['client_id'] = str(uuid.uuid4())
 
 
 @app.before_first_request
