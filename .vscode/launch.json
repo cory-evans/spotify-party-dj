@@ -14,7 +14,7 @@
 				"FLASK_ENV": "development",
 				"FLASK_DEBUG": "0"
 			},
-			"args": ["run", "--no-debugger", "--host=0.0.0.0"],
+			"args": ["run", "--no-debugger", "--host=0.0.0.0", "--cert=cert.pem", "--key=key.pem"],
 			"jinja": true
 		}
 	]

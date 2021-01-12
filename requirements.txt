@@ -1,5 +1,7 @@
 flask
 flask-sqlalchemy
-Flask-Caching
 flask-socketio
+Flask-Login
 psycopg2-binary
+requests
+pydantic

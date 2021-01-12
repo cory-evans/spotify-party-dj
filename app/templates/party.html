@@ -1,15 +1,44 @@
 {% extends 'layouts/base.html' %}
 {% from "macros/mediaplayer.html" import mediaplayer %}
 {% block head %}
+
+{% if user.is_authenticated %}
 <script>
-	const token = "{{ g.user['access_token'] }}"
+	const SPOTIFY_ACCESS_TOKEN = '{{ user.access_token }}'
 </script>
+<script src="/static/js/spotify-web-api.js"></script>
+{% endif %}
+{% if is_host %}
+<script src="/static/js/party-host.js"></script>
+{% endif %}
 <script src="/static/js/party.js"></script>
 {% endblock %}
 
 {% block content %}
-<script src="https://sdk.scdn.co/spotify-player.js"></script>
 <div class="container-fluid">
-	{{ mediaplayer() }}
+	<div class="row">
+		<div class="col-sm-12">
+			{{ mediaplayer() }}
+		</div>
+
+		{% if is_host %}
+		<div class="col-sm-12">
+			<h1>Devices</h1>
+			<div class="row">
+				<div class="col-sm-8">
+					<select id="devices" class="form-select">
+						<option selected value="null">Select a device</option>
+					</select>
+				</div>
+				<div class="col-sm-2">
+					<button class="btn btn-primary form-control" onclick="">Set device</button>
+				</div>
+				<div class="col-sm-2">
+					<button class="btn btn-secondary form-control" onclick="refresh_device_list()">Refresh devices</button>
+				</div>
+			</div>
+		</div>
+		{% endif %}
+	</div>
 </div>
 {% endblock %}

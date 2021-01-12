@@ -1,55 +1,292 @@
-import json
 import datetime
-from app.exts import db
+import typing
+import pydantic
 
-class User(db.Model):
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Table
+from sqlalchemy.orm import relationship, Query
+
+from app.database import Base
+
+
+artistAlbumTable = Table('artistalbum', Base.metadata,
+    Column('artist_id', Integer, ForeignKey('artist.db_id'), nullable=False),
+    Column('album_id', Integer, ForeignKey('album.db_id'), nullable=False)
+)
+
+artistTrackTable = Table('artisttrack', Base.metadata,
+    Column('artist_id', Integer, ForeignKey('artist.db_id'), nullable=False),
+    Column('track_id', Integer, ForeignKey('track.db_id'), nullable=False)
+)
+
+class AlbumImageTable(Base):
+    __tablename__ = 'albumimage'
+
+    db_id = Column(Integer, primary_key=True)
+
+    height = Column(Integer)
+    width = Column(Integer)
+    url = Column(String)
+
+    album_id = Column(Integer, ForeignKey('album.db_id'), nullable=False)
+
+class AlbumTable(Base):
+    __tablename__ = 'album'
+
+    db_id = Column(Integer, primary_key=True)
+
+    album_group = Column(String)
+    album_type = Column(String)
+    artists = relationship(
+        'ArtistTable',
+        secondary=artistAlbumTable,
+        back_populates='albums'
+    )
+
+    href = Column(String)
+    id = Column(String)
+    images = relationship('AlbumImageTable', lazy='dynamic')
+
+    name = Column(String)
+    type = Column(String)
+    uri = Column(String)
+
+
+class ArtistImageTable(Base):
+    __tablename__ = 'artistimage'
+
+    db_id = Column(Integer, primary_key=True)
+
+    height = Column(Integer)
+    width = Column(Integer)
+    url = Column(String)
+
+    artist_id = Column(Integer, ForeignKey('artist.db_id'), nullable=False)
+    artist = relationship('ArtistTable')
+
+class ArtistTable(Base):
+    __tablename__ = 'artist'
+
+    db_id = Column(Integer, primary_key=True)
+
+    href = Column(String)
+    id = Column(String)
+    name = Column(String)
+    type = Column(String)
+    uri = Column(String)
+    images = relationship('ArtistImageTable', lazy='dynamic')
+
+    albums = relationship(
+        'AlbumTable',
+        secondary=artistAlbumTable,
+        back_populates='artists'
+    )
+
+    tracks = relationship(
+        'TrackTable',
+        secondary=artistTrackTable,
+        back_populates='artists'
+    )
+
+
+class UserTable(Base):
     __tablename__ = 'user'
-    id = db.Column(db.String, primary_key=True)
-    display_name = db.Column(db.String)
-    email = db.Column(db.String)
-    href = db.Column(db.String)
-    uri = db.Column(db.String)
 
-    images = db.Column(db.String)
+    db_id = Column(Integer, primary_key=True)
 
-    access_token = db.Column(db.String)
-    refresh_token = db.Column(db.String)
-    expires = db.Column(db.DateTime)
-    scope = db.Column(db.String)
-    token_type = db.Column(db.String)
+    authenticated = Column(Boolean, default=False)
 
-    def to_dict(self) -> dict:
-        return self.to_dict_public()
+    id = Column(String, nullable=False)
+    display_name = Column(String, nullable=False)
+    email = Column(String)
+    href = Column(String)
+    uri = Column(String)
 
-    def to_dict_public(self) -> dict:
-        return {
-            'display_name': self.display_name,
-            'href': self.href,
-            'uri': self.uri,
-            'images': json.loads(self.images),
-            'access_token': self.access_token
-        }
+    images = relationship('UserImageTable', lazy='dynamic')
 
-    def to_dict_private(self) -> dict:
-        d = self.to_dict_public()
-        d.update({
-            'id': self.id,
-            'refresh_token': self.refresh_token,
-            'expires': self.expires,
-            'scope': self.scope,
-            'token_type': self.token_type
-        })
+    access_token = Column(String)
+    refresh_token = Column(String)
+    expires = Column(DateTime)
+    scope = Column(String)
+    token_type = Column(String)
 
-class Queue(db.Model):
+
+class UserImageTable(Base):
+    __tablename__ = 'userimage'
+
+    db_id = Column(Integer, primary_key=True)
+
+    height = Column(Integer)
+    width = Column(Integer)
+    url = Column(String)
+
+    user_id = Column(Integer, ForeignKey(UserTable.db_id), nullable=False)
+    user = relationship('UserTable')
+
+class TrackTable(Base):
+    __tablename__ = 'track'
+
+    db_id = Column(Integer, primary_key=True)
+
+    uri = Column(String)
+
+    album_id = Column(Integer, ForeignKey('album.db_id'), nullable=False)
+    album = relationship('AlbumTable')
+
+    artists = relationship(
+        'ArtistTable',
+        secondary=artistTrackTable,
+        back_populates='tracks'
+    )
+
+    duration_ms = Column(Integer)
+    explicit = Column(Boolean)
+    href = Column(String)
+    id = Column(String)
+
+    name = Column(String)
+    type = Column(String)
+
+
+class PartyTable(Base):
+    __tablename__ = 'party'
+
+    db_id = Column(Integer, primary_key=True)
+
+    id = Column(String, unique=True, nullable=False)
+
+    host_id = Column(Integer, ForeignKey('user.db_id'), nullable=False)
+    host = relationship('UserTable')
+
+    currently_playing_id = Column(Integer, ForeignKey(TrackTable.db_id))
+    currently_playing = relationship('TrackTable')
+
+class PartyMemberTable(Base):
+    __tablename__ = 'partymember'
+    db_id = Column(Integer, primary_key=True)
+
+    party_id = Column(Integer, ForeignKey('party.db_id'), nullable=False)
+    party = relationship('PartyTable')
+
+    user_id = Column(Integer, ForeignKey('user.db_id'), nullable=False)
+    user = relationship('UserTable')
+
+class QueueItemTable(Base):
     __tablename__ = 'queue'
-    id = db.Column(db.Integer, primary_key=True, auto_increment=True)
-    track_uri = db.Column(db.String)
-    date_added = db.Column(db.DateTime, default=datetime.datetime.now)
-    next_playable = db.Column(db.DateTime, default=datetime.datetime.now)
+
+    db_id = Column(Integer, primary_key=True)
+
+    track_id = Column(Integer, ForeignKey('track.db_id'), nullable=False)
+    track = relationship('TrackTable')
+
+    date_added = Column(DateTime, default=datetime.datetime.utcnow)
+    next_playable = Column(DateTime, default=datetime.datetime.utcnow)
 
 
-class VoteToSkip(db.Model):
-    __tablename__ = 'voteskip'
+###################################################
+#                PYDANTIC MODELS                  #
+###################################################
+class OrmBaseModel(pydantic.BaseModel):
+    db_id: typing.Optional[int]
 
-    client_id = db.Column(db.String)
-    queue_id = db.Column(db.Integer, db.ForeignKey('queue.id'))
+    @pydantic.validator('*', pre=True)
+    def evaluate_lazy_columns(cls, v):
+        if isinstance(v, Query):
+            return v.all()
+
+        return v
+
+    class Config:
+        orm_mode = True
+
+class Image(OrmBaseModel):
+    height: typing.Optional[int] = None
+    width : typing.Optional[int] = None
+    url   : str
+
+
+class User(OrmBaseModel):
+    id: typing.Optional[str] = None
+    authenticated: typing.Optional[bool] = False
+
+    display_name: typing.Optional[str] = None
+    email: typing.Optional[str] = None
+    href: typing.Optional[str] = None
+    uri: typing.Optional[str] = None
+
+    images: typing.Optional[typing.List[Image]] = None
+
+    access_token: typing.Optional[str] = None
+    refresh_token: typing.Optional[str] = None
+    expires: typing.Optional[datetime.datetime] = None
+    scope: typing.Optional[str] = None
+    token_type: typing.Optional[str] = None
+
+    @property
+    def is_authenticated(self):
+        return self.authenticated
+
+
+    @property
+    def is_active(self):
+        return self.is_authenticated
+
+    @property
+    def is_anonymous(self):
+        return self.id is not None
+
+    def get_id(self):
+        return self.db_id
+
+
+class Artist(OrmBaseModel):
+    '''Simplified'''
+    href: str
+    id: str
+    name: str
+    type: str
+    uri: str
+
+
+class Album(OrmBaseModel):
+    '''Simplified'''
+    album_group: str
+    album_type: str
+    artists: typing.List[Artist]
+
+    href: str
+    id: str
+    images: typing.List[Image]
+
+    name: str
+    type: str
+    uri: str
+
+class Track(OrmBaseModel):
+    uri: str
+    album: Album
+    artists: typing.List[Artist]
+
+    duration_ms: int
+    explicit: bool
+    href: str
+    id: str
+
+    name: str
+    type: str
+
+
+class QueueItem(OrmBaseModel):
+    track: Track
+    date_added: datetime.datetime
+    next_playable: datetime.datetime
+
+
+class Party(OrmBaseModel):
+    id : str
+    currently_playing: typing.Optional[Track] = None
+
+    queue: typing.Optional[typing.List[QueueItem]] = None
+
+class PartyMember(OrmBaseModel):
+    party: Party
+    user: User

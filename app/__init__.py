@@ -1,8 +1,12 @@
 import logging
-from flask import Flask
+from flask import Flask, _app_ctx_stack
+
+from sqlalchemy.orm import scoped_session
 
 from app.views import core, party, auth
-from app.exts import cache, db, socketio
+from app.exts import socketio, login_manager
+from app.database import SessionLocal, engine
+from app import models
 
 logger = logging.getLogger('werkzeug')
 logger.setLevel(logging.ERROR)
@@ -15,9 +19,15 @@ def create_app():
     for package in [core, party, auth]:
         app.register_blueprint(package.bp)
 
-    db.app = app
-    db.init_app(app)
+    app.db = scoped_session(SessionLocal, scopefunc=_app_ctx_stack.__ident_func__)
     socketio.init_app(app)
-    cache.init_app(app)
+    login_manager.init_app(app)
+
+    @login_manager.user_loader
+    def user_loader(user_id):
+        user = app.db.query(models.UserTable).get(user_id)
+        user_model = models.User.from_orm(user)
+        return user_model
+
 
     return app

@@ -35,10 +35,7 @@
 
 			<ul class="navbar-nav w-100">
 				{{ nav_link('core.index', 'home') }}
-				{% if not g.user %}
-				{{ nav_link('auth.login', 'login', 'ms-sm-auto') }}
-				{% else %}
-				{{ nav_link('party.party', 'party') }}
+				{% if user.is_authenticated %}
 				<li class="ms-sm-auto nav-item dropdown">
 					<a
 						href="#"
@@ -51,7 +48,7 @@
 						<img
 							class="rounded d-inline-block"
 							height="24"
-							src="{{ g.user['images'][0]['url'] }}"
+							src="{{ user.images[0]['url'] }}"
 							alt="profile picture"
 						/>
 					</a>
@@ -61,6 +58,8 @@
 						</li>
 					</ul>
 				</li>
+				{% else %}
+				{{ nav_link('auth.login', 'login', 'ms-sm-auto') }}
 				{% endif %}
 			</ul>
 		</nav>

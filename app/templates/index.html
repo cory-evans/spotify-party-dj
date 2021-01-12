@@ -1,34 +1,33 @@
 {% extends 'layouts/base.html' %}
-{% from "macros/mediaplayer.html" import mediaplayer %}
 {% block head %}
 <script src="/static/js/index.js"></script>
 {% endblock %}
 {% block content %}
 <main class="container-fluid mt-3">
 	<div class="row">
+		<div class="col-sm-3"></div>
 		<div class="col-sm-6">
-			{{ mediaplayer() }}
+			<button type="button" class="btn btn-primary d-block w-100" onclick="window.location.pathname = '/party/host'">
+				Host
+			</button>
 		</div>
+		<div class="col-sm-3"></div>
+	</div>
 
-		<div class="col-sm-6">
-			<div class="row">
-				<div class="col">
-					<input class="form-control" type="text" placeholder="Search...">
-					<hr>
-					<ul id="search-results" class="list-group list-group-flush">
-						<li class="list-group-item list-group-item-action">
-							Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam, consequuntur!
-						</li>
-						<li class="list-group-item list-group-item-action">
-							Lorem ipsum dolor sit, amet consectetur adipisicing.
-						</li>
-						<li class="list-group-item list-group-item-action">
-							Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam.
-						</li>
-					</ul>
-				</div>
+	<div class="row mt-3">
+		<div class="col-sm-2"></div>
+		<div class="col-sm-8">
+			<hr>
+			<h1 class="text-center">Available Parties</h1>
+			<div class="list-group">
+				{% for p in parties %}
+				<a href="{{ url_for('party.join', code=p.id) }}" class="list-group-item list-item-group-action">
+					{{ p.id }}
+				</a>
+				{% endfor %}
 			</div>
 		</div>
+		<div class="col-sm-2"></div>
 	</div>
 </main>
 {% endblock %}

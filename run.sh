@@ -2,6 +2,8 @@
 
 source ./venv/bin/activate
 
+rm .test.db
+
 export FLASK_APP=app.server:app
 export FLASK_ENV=development
 

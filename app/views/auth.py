@@ -1,4 +1,5 @@
 import json
+import uuid
 import datetime
 
 import requests
@@ -14,15 +15,21 @@ from flask import (
     jsonify
 )
 
+from flask_login import (
+    login_required,
+    login_user,
+    logout_user,
+    current_user
+)
+
 from app import models
-from app.exts import db
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 
 @bp.route('/login')
 def login():
-    scopes = 'streaming user-modify-playback-state user-read-email user-read-private'
+    scopes = 'user-read-playback-state user-modify-playback-state user-read-email user-read-private'
 
     print(scopes)
 
@@ -75,77 +82,114 @@ def login_after():
 
     data.update(me_resp.json())
 
-    expires = datetime.datetime.now() + datetime.timedelta(seconds=data['expires_in'])
-    user = models.User(
-        id = data['id'],
-        display_name = data['display_name'],
-        email = data['email'],
-        href = data['href'],
-        uri = data['uri'],
-        images = json.dumps(data['images']),
-        access_token = data['access_token'],
-        refresh_token = data['refresh_token'],
-        expires = expires,
-        scope = data['scope'],
-        token_type = data['token_type']
-    )
+    # does the user exist?
+    user = current_app.db.query(models.UserTable)\
+        .filter(models.UserTable.id == data['id'])\
+        .first()
 
-    session['id'] = user.id
+    print(user)
 
-    db.session.add(user)
-    db.session.commit()
+    expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=data['expires_in'])
+    if not user:
+        user = models.UserTable(
+            id = data['id']
+        )
+
+        add_user = True
+    else:
+        add_user = False
+
+    user.display_name = data['display_name']
+    user.email = data['email']
+    user.href = data['href']
+    user.uri = data['uri']
+
+    user.access_token = data['access_token']
+    user.refresh_token = data['refresh_token']
+    user.expires = expires
+    user.scope = data['scope']
+    user.token_type = data['token_type']
+
+    user.authenticated = True
+
+    if add_user:
+        current_app.db.add(user)
+
+    # drop all images belonging to the user
+    current_app.db.query(models.UserImageTable)\
+        .filter_by(user_id=user.db_id)\
+        .delete()
+
+    for img in data['images']:
+        new_img = models.UserImageTable(
+            height=img.get('height'),
+            width=img.get('width'),
+            url=img['url'],
+            user=user
+        )
+        current_app.db.add(new_img)
+
+    current_app.db.commit()
+
+    user_model = models.User.from_orm(user)
+
+    login_user(user_model, remember=True)
 
     return redirect(url_for('core.index'))
 
 @bp.route('/logout')
+@login_required
 def logout():
-    try:
-        session.clear()
+    user_model = current_user
+    user = current_app.db.query(models.UserTable)\
+        .get(user_model.db_id)
 
-    except OSError as e:
-        print('Error %s - %s' % (e.filename, e.strerror))
+    user.authenticated = False
+    current_app.db.commit()
+
+    logout_user()
 
     return redirect(url_for('core.index'))
 
-@bp.route('/access_token')
-def access_token():
-    uid = session.get('id')
-    user = models.User.query.get(uid)
-    if user:
-        return jsonify({
-            'access_token': user.access_token
-        })
+# @bp.route('/access_token')
+# def access_token():
+#     uid = session.get('id')
+#     user = models.User.query.get(uid)
+#     if user:
+#         return jsonify({
+#             'access_token': user.access_token
+#         })
 
-    return jsonify({
-        'access_token': None
-    })
+#     return jsonify({
+#         'access_token': None
+#     })
 
-@bp.route('/refresh_token', methods=['POST'])
-def refresh_token():
-    uid = session.get('id')
-    user = models.User.query.get(uid)
+# @bp.route('/refresh_token', methods=['POST'])
+# def refresh_token():
+#     uid = session.get('id')
+#     user = models.User.query.get(uid)
 
-    headers = {
-        'Authorization': current_app.config.get('SPOTIFY_AUTHORIZATION_BASE64')
-    }
-    params = {
-        'grant_type': 'refresh_token',
-        'refresh_token': user.refresh_token
-    }
-    resp = requests.post(
-        'https://accounts.spotify.com/api/token',
-        headers=headers,
-        data=params
-    )
+#     headers = {
+#         'Authorization': current_app.config.get('SPOTIFY_AUTHORIZATION_BASE64')
+#     }
+#     params = {
+#         'grant_type': 'refresh_token',
+#         'refresh_token': user.refresh_token
+#     }
+#     resp = requests.post(
+#         'https://accounts.spotify.com/api/token',
+#         headers=headers,
+#         data=params
+#     )
 
-    data = resp.json()
-    user.access_token = data['access_token']
-    user.token_type = data['token_type']
-    user.scope = data['scope']
-    user.expires = datetime.datetime.now() + datetime.timedelta(seconds=data['expires_in'])
+#     data = resp.json()
+#     user.access_token = data['access_token']
+#     user.token_type = data['token_type']
+#     user.scope = data['scope']
+#     user.expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=data['expires_in'])
 
-    db.session.commit()
+#     db.session.commit()
 
-    return jsonify({
-        'access_token': user.access_token
-    })
+#     return jsonify({
+#         'access_token': user.access_token
+#     })
