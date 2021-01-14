@@ -1,18 +1,40 @@
+{% from "macros/queue.html" import queue %}
+{% from "macros/search.html" import search %}
+
 {% macro mediaplayer() %}
+<script src="/static/js/mediaplayer.js"></script>
 
-<script src="/static/js/player.js"></script>
-
-<img src="" alt="album-image" id="album-image">
-<h1 id="song-title"></h1>
-<h2 id="song-artists"></h2>
-<h3 id="song-album"></h3>
-
+<div class="mt-2"></div>
 <div class="row">
-	<div class="col">
-		<h1>Queue</h1>
-		<ul id="next-tracks" class="list-group list-group-flush">
+	<div class="col-md-3"></div>
+	<div class="col-md-6">
+		<img class="w-100" src="" alt="album-image" id="album-image">
+		<h1 class="text-center overflow-hidden" style="height: 1.25em;" id="song-title"></h1>
+		<h2 class="text-center overflow-hidden" style="height: 1.25em;" id="song-artists"></h2>
+		<h3 class="text-center overflow-hidden" style="height: 1.25em;" id="song-album"></h3>
+	</div>
+	<div class="col-md-3"></div>
+</div>
 
-		</ul>
+<div class="nav nav-tabs" id="queue-search-tab" role="tablist">
+	<a href="#queue" class="w-50 text-center nav-link active" id="queue-tab" data-bs-toggle="tab" role="tab"
+		aria-controls="queue" aria-selected="true">
+		Queue
+	</a>
+
+	<a href="#search" class="w-50 text-center nav-link" id="search-tab" data-bs-toggle="tab" role="tab"
+		aria-controls="search" aria-selected="false">
+		Search
+	</a>
+</div>
+
+<div class="tab-content mt-2" id="tab-content">
+	<div class="tab-pane fade show active" id="queue" role="tabpanel" aria-labelledby="queue-tab">
+		{{ queue() }}
+	</div>
+
+	<div class="tab-pane fade" id="search" role="tabpanel" aria-labelledby="search-tab">
+		{{ search() }}
 	</div>
 </div>
 

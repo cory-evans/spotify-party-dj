@@ -13,31 +13,35 @@ class JSONMixin(object):
     # def __iter__(self):
     #     return self.to_dict().iteritems()
 
-    def to_dict(self, rel=None, backref=None):
+    def to_dict(self, rel=None, backref=None, exclude_columns=[]):
         if rel is None:
             rel = self.RELATIONSHIP_TO_DICT
 
         data = {
             col.key: getattr(self, attr_name)
             for attr_name, col in self.__mapper__.c.items()
+            if attr_name not in exclude_columns
         }
 
         if rel:
             for attr_name, relation in self.__mapper__.relationships.items():
+                if attr_name in exclude_columns:
+                    continue
+
                 if backref == relation.target:
                     continue
 
                 value = getattr(self, attr_name)
                 if isinstance(value, Base):
-                    data[relation.key] = value.to_dict(backref=self.__table__)
+                    data[attr_name] = value.to_dict(backref=self.__table__, exclude_columns=exclude_columns)
 
-                elif isinstance(value, Query):
-                    data[relation.key] = [
-                        i.to_dict(backref=self.__table__)
+                elif isinstance(value, (Query, list)):
+                    data[attr_name] = [
+                        i.to_dict(backref=self.__table__, exclude_columns=exclude_columns)
                         for i in value
                     ]
                 else:
-                    data[relation.key] = None
+                    data[attr_name] = None
 
         return data
 
@@ -179,17 +183,18 @@ class User(JSONMixin, Base):
     scope = Column(String)
     token_type = Column(String)
 
-
+    @property
     def is_authenticated(self):
         return self.authenticated
 
+    @property
     def is_active(self):
         return self.is_authenticated
-
 
     def get_id(self):
         return self.db_id
 
+    @property
     def is_anonymous(self):
         return self.is_authenticated
 
@@ -253,6 +258,12 @@ class Party(JSONMixin, Base):
 
 class PartyMember(JSONMixin, Base):
     __tablename__ = 'partymember'
+
+    relationship_map = {
+        'party': 'Party',
+        'user': 'User'
+    }
+
     db_id = Column(Integer, primary_key=True)
 
     party_id = Column(Integer, ForeignKey('party.db_id'), nullable=False)
@@ -260,6 +271,7 @@ class PartyMember(JSONMixin, Base):
 
     user_id = Column(Integer, ForeignKey('user.db_id'), nullable=False)
     user = relationship('User')
+
 
 class QueueItem(JSONMixin, Base):
     __tablename__ = 'queue'

@@ -1,15 +1,22 @@
 import requests
 from flask import current_app
+from flask_login import current_user
 
 from app import models
+
+def _make_headers_for_user():
+    user = current_user
+
+    raw_headers = {
+        'Authorization': f'Bearer {user.access_token}'
+    }
+
+    return raw_headers
 
 def make_request(endpoint, method='GET', headers=None, params=None, data=None):
     base_url = 'https://api.spotify.com/v1'
 
-    user = current_app.db.query(models.User).first()
-    raw_headers = {
-        'Authorization': f'Bearer {user.access_token}'
-    }
+    raw_headers = _make_headers_for_user()
 
     if isinstance(headers, dict):
         headers.update(raw_headers)

@@ -35,13 +35,15 @@ def download_track(id):
         current_app.db.add(track)
         current_app.db.commit()
 
-    return jsonify(track.to_dict())
+    return jsonify(track.to_dict(
+        exclude_columns=['db_id', 'album_id']
+    ))
 
 @bp.route('/tracks')
 def get_all_tracks():
     tracks = current_app.db.query(models.Track).all()
 
     return jsonify([
-        t.to_dict()
+        t.to_dict(exclude_columns=['db_id', 'album_id'])
         for t in tracks
     ])
