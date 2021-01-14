@@ -25,9 +25,10 @@ def create_app():
 
     @login_manager.user_loader
     def user_loader(user_id):
-        user = app.db.query(models.UserTable).get(user_id)
-        user_model = models.User.from_orm(user)
-        return user_model
+        user = app.db.query(models.User).get(user_id)
+        if user is not None:
+            return user.to_dict()
 
+        return {}
 
     return app

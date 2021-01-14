@@ -1,19 +1,19 @@
 var socket = io()
 
-socket.on('state_change', (state) => {
-	// console.log(state)
+socket.on('state_change', (track) => {
+	console.log(track)
 
-	if (!('name' in state)) {
-		console.error('track_window not in state')
+	if (!('name' in track)) {
+		console.error('track_window not in track')
 		return
 	}
 
-	var img_url = select_image(state.album.images, 640)
+	var img_url = select_image(track.album.images, 640)
 	document.getElementById('album-image').src = img_url
 
-	var song_title = state.name
-	var song_album = state.album.name
-	var artists = state.artists[0].name
+	var song_title = track.name
+	var song_album = track.album.name
+	var artists = track.artists[0].name
 
 	document.getElementById('song-title').innerHTML = song_title
 	document.getElementById('song-artists').innerHTML = artists

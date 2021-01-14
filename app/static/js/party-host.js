@@ -32,7 +32,7 @@ function fetch_currently_playing() {
 		}
 		data.item.progress_ms = data.progress_ms
 
-		console.log(data.item);
+		// console.log(data.item);
 		socket.emit('state_change', data.item)
 	})
 }

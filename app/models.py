@@ -7,19 +7,68 @@ from sqlalchemy.orm import relationship, Query
 
 from app.database import Base
 
+class JSONMixin(object):
+    RELATIONSHIP_TO_DICT = True
 
-artistAlbumTable = Table('artistalbum', Base.metadata,
-    Column('artist_id', Integer, ForeignKey('artist.db_id'), nullable=False),
-    Column('album_id', Integer, ForeignKey('album.db_id'), nullable=False)
-)
+    # def __iter__(self):
+    #     return self.to_dict().iteritems()
 
-artistTrackTable = Table('artisttrack', Base.metadata,
-    Column('artist_id', Integer, ForeignKey('artist.db_id'), nullable=False),
-    Column('track_id', Integer, ForeignKey('track.db_id'), nullable=False)
-)
+    def to_dict(self, rel=None, backref=None):
+        if rel is None:
+            rel = self.RELATIONSHIP_TO_DICT
 
-class AlbumImageTable(Base):
-    __tablename__ = 'albumimage'
+        data = {
+            col.key: getattr(self, attr_name)
+            for attr_name, col in self.__mapper__.c.items()
+        }
+
+        if rel:
+            for attr_name, relation in self.__mapper__.relationships.items():
+                if backref == relation.target:
+                    continue
+
+                value = getattr(self, attr_name)
+                if isinstance(value, Base):
+                    data[relation.key] = value.to_dict(backref=self.__table__)
+
+                elif isinstance(value, Query):
+                    data[relation.key] = [
+                        i.to_dict(backref=self.__table__)
+                        for i in value
+                    ]
+                else:
+                    data[relation.key] = None
+
+        return data
+
+    relationship_map = {
+        # 'column_name': 'class'
+    }
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        new_cls = cls()
+
+        for col_name, relation in cls.__mapper__.relationships.items():
+            if col_name in data:
+                rel_cls = globals().get(cls.relationship_map[col_name])
+                if isinstance(data[col_name], list):
+                    attr = [
+                        rel_cls.from_dict(x)
+                        for x in data[col_name]
+                    ]
+                else:
+                    attr = rel_cls.from_dict(data[col_name])
+
+                setattr(new_cls, col_name, attr)
+
+        for col_name, col in cls.__mapper__.c.items():
+            if col_name in data:
+                setattr(new_cls, col_name, data[col_name])
+
+        return new_cls
+
+class ImageMixin(object):
 
     db_id = Column(Integer, primary_key=True)
 
@@ -27,44 +76,61 @@ class AlbumImageTable(Base):
     width = Column(Integer)
     url = Column(String)
 
-    album_id = Column(Integer, ForeignKey('album.db_id'), nullable=False)
+artistAlbum = Table('artistalbum', Base.metadata,
+    Column('artist_id', Integer, ForeignKey('artist.db_id'), nullable=False),
+    Column('album_id', Integer, ForeignKey('album.db_id'), nullable=False)
+)
 
-class AlbumTable(Base):
+artistTrack = Table('artisttrack', Base.metadata,
+    Column('artist_id', Integer, ForeignKey('artist.db_id'), nullable=False),
+    Column('track_id', Integer, ForeignKey('track.db_id'), nullable=False)
+)
+
+class AlbumImage(JSONMixin, ImageMixin, Base):
+    __tablename__ = 'albumimage'
+    album_id = Column(Integer, ForeignKey('album.db_id'), nullable=False)
+    album = relationship('Album')
+
+class Album(JSONMixin, Base):
     __tablename__ = 'album'
+
+    relationship_map = {
+        'artists': 'Artist',
+        'images': 'AlbumImage'
+    }
 
     db_id = Column(Integer, primary_key=True)
 
     album_group = Column(String)
     album_type = Column(String)
     artists = relationship(
-        'ArtistTable',
-        secondary=artistAlbumTable,
+        'Artist',
+        secondary=artistAlbum,
         back_populates='albums'
     )
 
     href = Column(String)
     id = Column(String)
-    images = relationship('AlbumImageTable', lazy='dynamic')
+    images = relationship('AlbumImage', lazy='dynamic')
 
     name = Column(String)
     type = Column(String)
     uri = Column(String)
 
 
-class ArtistImageTable(Base):
+class ArtistImage(JSONMixin, ImageMixin, Base):
     __tablename__ = 'artistimage'
 
-    db_id = Column(Integer, primary_key=True)
-
-    height = Column(Integer)
-    width = Column(Integer)
-    url = Column(String)
-
     artist_id = Column(Integer, ForeignKey('artist.db_id'), nullable=False)
-    artist = relationship('ArtistTable')
+    artist = relationship('Artist')
 
-class ArtistTable(Base):
+class Artist(JSONMixin, Base):
     __tablename__ = 'artist'
+
+    relationship_map = {
+        'tracks': 'Track',
+        'images': 'AlbumImage'
+    }
 
     db_id = Column(Integer, primary_key=True)
 
@@ -73,23 +139,27 @@ class ArtistTable(Base):
     name = Column(String)
     type = Column(String)
     uri = Column(String)
-    images = relationship('ArtistImageTable', lazy='dynamic')
+    images = relationship('ArtistImage', lazy='dynamic')
 
     albums = relationship(
-        'AlbumTable',
-        secondary=artistAlbumTable,
+        'Album',
+        secondary=artistAlbum,
         back_populates='artists'
     )
 
     tracks = relationship(
-        'TrackTable',
-        secondary=artistTrackTable,
+        'Track',
+        secondary=artistTrack,
         back_populates='artists'
     )
 
 
-class UserTable(Base):
+class User(JSONMixin, Base):
     __tablename__ = 'user'
+
+    relationship_map = {
+        'images': 'UserImage'
+    }
 
     db_id = Column(Integer, primary_key=True)
 
@@ -101,7 +171,7 @@ class UserTable(Base):
     href = Column(String)
     uri = Column(String)
 
-    images = relationship('UserImageTable', lazy='dynamic')
+    images = relationship('UserImage', lazy='dynamic')
 
     access_token = Column(String)
     refresh_token = Column(String)
@@ -110,31 +180,45 @@ class UserTable(Base):
     token_type = Column(String)
 
 
-class UserImageTable(Base):
+    def is_authenticated(self):
+        return self.authenticated
+
+    def is_active(self):
+        return self.is_authenticated
+
+
+    def get_id(self):
+        return self.db_id
+
+    def is_anonymous(self):
+        return self.is_authenticated
+
+
+class UserImage(JSONMixin, ImageMixin, Base):
     __tablename__ = 'userimage'
 
-    db_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey(User.db_id), nullable=False)
+    user = relationship('User')
 
-    height = Column(Integer)
-    width = Column(Integer)
-    url = Column(String)
 
-    user_id = Column(Integer, ForeignKey(UserTable.db_id), nullable=False)
-    user = relationship('UserTable')
-
-class TrackTable(Base):
+class Track(JSONMixin, Base):
     __tablename__ = 'track'
 
+    relationship_map = {
+        'artists': 'Artist',
+        'album': 'Album'
+    }
+
     db_id = Column(Integer, primary_key=True)
 
-    uri = Column(String)
+    uri = Column(String, unique=True, nullable=False)
 
     album_id = Column(Integer, ForeignKey('album.db_id'), nullable=False)
-    album = relationship('AlbumTable')
+    album = relationship('Album')
 
     artists = relationship(
-        'ArtistTable',
-        secondary=artistTrackTable,
+        'Artist',
+        secondary=artistTrack,
         back_populates='tracks'
     )
 
@@ -147,146 +231,43 @@ class TrackTable(Base):
     type = Column(String)
 
 
-class PartyTable(Base):
+class Party(JSONMixin, Base):
     __tablename__ = 'party'
+
+    relationship_map = {
+        'host': 'User',
+        'currently_playing': 'Track'
+    }
 
     db_id = Column(Integer, primary_key=True)
 
     id = Column(String, unique=True, nullable=False)
 
     host_id = Column(Integer, ForeignKey('user.db_id'), nullable=False)
-    host = relationship('UserTable')
+    host = relationship('User')
 
-    currently_playing_id = Column(Integer, ForeignKey(TrackTable.db_id))
-    currently_playing = relationship('TrackTable')
+    currently_playing_id = Column(Integer, ForeignKey('track.uri'))
+    currently_playing = relationship('Track')
 
-class PartyMemberTable(Base):
+    next_song_is_in_queue = Column(Boolean, default=False)
+
+class PartyMember(JSONMixin, Base):
     __tablename__ = 'partymember'
     db_id = Column(Integer, primary_key=True)
 
     party_id = Column(Integer, ForeignKey('party.db_id'), nullable=False)
-    party = relationship('PartyTable')
+    party = relationship('Party')
 
     user_id = Column(Integer, ForeignKey('user.db_id'), nullable=False)
-    user = relationship('UserTable')
+    user = relationship('User')
 
-class QueueItemTable(Base):
+class QueueItem(JSONMixin, Base):
     __tablename__ = 'queue'
 
     db_id = Column(Integer, primary_key=True)
 
     track_id = Column(Integer, ForeignKey('track.db_id'), nullable=False)
-    track = relationship('TrackTable')
+    track = relationship('Track')
 
     date_added = Column(DateTime, default=datetime.datetime.utcnow)
     next_playable = Column(DateTime, default=datetime.datetime.utcnow)
-
-
-###################################################
-#                PYDANTIC MODELS                  #
-###################################################
-class OrmBaseModel(pydantic.BaseModel):
-    db_id: typing.Optional[int]
-
-    @pydantic.validator('*', pre=True)
-    def evaluate_lazy_columns(cls, v):
-        if isinstance(v, Query):
-            return v.all()
-
-        return v
-
-    class Config:
-        orm_mode = True
-
-class Image(OrmBaseModel):
-    height: typing.Optional[int] = None
-    width : typing.Optional[int] = None
-    url   : str
-
-
-class User(OrmBaseModel):
-    id: typing.Optional[str] = None
-    authenticated: typing.Optional[bool] = False
-
-    display_name: typing.Optional[str] = None
-    email: typing.Optional[str] = None
-    href: typing.Optional[str] = None
-    uri: typing.Optional[str] = None
-
-    images: typing.Optional[typing.List[Image]] = None
-
-    access_token: typing.Optional[str] = None
-    refresh_token: typing.Optional[str] = None
-    expires: typing.Optional[datetime.datetime] = None
-    scope: typing.Optional[str] = None
-    token_type: typing.Optional[str] = None
-
-    @property
-    def is_authenticated(self):
-        return self.authenticated
-
-
-    @property
-    def is_active(self):
-        return self.is_authenticated
-
-    @property
-    def is_anonymous(self):
-        return self.id is not None
-
-    def get_id(self):
-        return self.db_id
-
-
-class Artist(OrmBaseModel):
-    '''Simplified'''
-    href: str
-    id: str
-    name: str
-    type: str
-    uri: str
-
-
-class Album(OrmBaseModel):
-    '''Simplified'''
-    album_group: str
-    album_type: str
-    artists: typing.List[Artist]
-
-    href: str
-    id: str
-    images: typing.List[Image]
-
-    name: str
-    type: str
-    uri: str
-
-class Track(OrmBaseModel):
-    uri: str
-    album: Album
-    artists: typing.List[Artist]
-
-    duration_ms: int
-    explicit: bool
-    href: str
-    id: str
-
-    name: str
-    type: str
-
-
-class QueueItem(OrmBaseModel):
-    track: Track
-    date_added: datetime.datetime
-    next_playable: datetime.datetime
-
-
-class Party(OrmBaseModel):
-    id : str
-    currently_playing: typing.Optional[Track] = None
-
-    queue: typing.Optional[typing.List[QueueItem]] = None
-
-class PartyMember(OrmBaseModel):
-    party: Party
-    user: User

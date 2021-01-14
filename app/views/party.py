@@ -24,16 +24,15 @@ bp = Blueprint('party', __name__, url_prefix='/party')
 def party(code):
     user = current_user
 
-    if user.is_anonymous:
-        is_host = False
-    else:
-        # party = models.Party.query\
-        #     .join(models.PartyMember, models.PartyMember.party_id == models.Party.id)\
-        #     .add_columns(models.PartyMember.is_host)\
-        #     .filter(models.PartyMember.user_id == user.id)\
-        #     .first()
+    if user.is_authenticated:
+        party_member = current_app.db.query(models.PartyMemberTable)\
+            .filter_by(user_id=user.db_id)\
+            .first()
+        party_member = models.PartyMember.from_orm(party_member)
 
-        is_host = True
+        is_host = party_member.party.host.db_id == user.db_id
+    else:
+        is_host = False
 
     session['code'] = code
 
@@ -52,20 +51,19 @@ def host():
     ])
 
     user_model = current_user
-    user = current_app.db.query(models.UserTable)\
+    user = current_app.db.query(models.User)\
         .get(user_model.db_id)
 
-    party = models.PartyTable(
+    party = models.Party(
         id=code,
         host=user
     )
-    party_member = models.PartyMemberTable(
+    party_member = models.PartyMember(
         party=party,
         user=user
     )
 
-    current_app.db.add(party)
-    current_app.db.add(party_member)
+    current_app.db.add_all([party, party_member])
     current_app.db.commit()
 
     return redirect(url_for('party.party', code=code))
@@ -77,14 +75,14 @@ def join(code: str):
     if user.is_anonymous:
         pass
     else:
-        user_row = current_app.db.query(models.UserTable)\
+        user_row = current_app.db.query(models.User)\
             .get(user.db_id)
 
-        party = current_app.db.query(models.PartyTable)\
+        party = current_app.db.query(models.Party)\
             .filter_by(id=code)\
             .first()
 
-        pm = models.PartyMemberTable(
+        pm = models.PartyMember(
             party=party,
             user=user_row
         )
@@ -101,24 +99,41 @@ def on_connect():
 
 
 @socketio.on('state_change')
-def state_change(state):
-    party = current_app.db.query(models.PartyTable)\
-        .get(session['code'])
+def state_change(currently_playing):
 
-    if party.currently_playing.get('uri') != state.get('uri'):
+    track = current_app.db.query(models.Track)\
+        .filter_by(uri=currently_playing['uri'])\
+        .first()
+
+    if not track:
+        # Download track from spotify
+
+        # Insert into db
+        track = models.Track.from_dict(currently_playing)
+
+    party = current_app.db.query(models.Party)\
+        .filter_by(id=session['code'])\
+        .first()
+
+    party_model = party.to_dict()
+
+    # If track not in database download on add it
+
+
+    if party_model.currently_playing and party_model.currently_playing.uri != track.uri:
         # The song has changed
         party.next_song_is_in_queue = False
-        socketio.emit('state_change', state)
+        socketio.emit('state_change', track.to_dict())
 
-    elif not party.currently_playing:
-        socketio.emit('state_change', state)
+    elif not party_model.currently_playing:
+        socketio.emit('state_change', track.to_dict())
 
-    if state['duration_ms'] - state['progress_ms'] <= 10000 and not party.next_song_is_in_queue:
+    if track.duration_ms - currently_playing['progress_ms'] <= 10000 and not party.next_song_is_in_queue:
         # queue next song
         print('add next song to queue')
         party.next_song_is_in_queue = True
 
-    party.currently_playing = state
+    party.currently_playing_id = track.uri
     current_app.db.commit()
 
 
@@ -129,12 +144,15 @@ def state_change(state):
 
 
 def get_current_state(party_id):
-    party = party = current_app.db.query(models.PartyTable)\
-        .get(party_id)
+    party = current_app.db.query(models.PartyTable)\
+        .filter_by(id=party_id)\
+        .first()
+
     if party is None:
         return {}
 
-    return party.currently_playing
+    party_model = models.Party.from_orm(party)
+    return party_model.currently_playing
 
 
 # def get_queue(party_id):

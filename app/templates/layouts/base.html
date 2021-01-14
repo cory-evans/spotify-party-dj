@@ -35,7 +35,7 @@
 
 			<ul class="navbar-nav w-100">
 				{{ nav_link('core.index', 'home') }}
-				{% if user.is_authenticated %}
+				{% if user.authenticated %}
 				<li class="ms-sm-auto nav-item dropdown">
 					<a
 						href="#"

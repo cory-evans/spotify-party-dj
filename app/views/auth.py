@@ -83,15 +83,15 @@ def login_after():
     data.update(me_resp.json())
 
     # does the user exist?
-    user = current_app.db.query(models.UserTable)\
-        .filter(models.UserTable.id == data['id'])\
+    user = current_app.db.query(models.User)\
+        .filter_by(id=data['id'])\
         .first()
 
     print(user)
 
     expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=data['expires_in'])
     if not user:
-        user = models.UserTable(
+        user = models.User(
             id = data['id']
         )
 
@@ -116,12 +116,12 @@ def login_after():
         current_app.db.add(user)
 
     # drop all images belonging to the user
-    current_app.db.query(models.UserImageTable)\
+    current_app.db.query(models.UserImage)\
         .filter_by(user_id=user.db_id)\
         .delete()
 
     for img in data['images']:
-        new_img = models.UserImageTable(
+        new_img = models.UserImage(
             height=img.get('height'),
             width=img.get('width'),
             url=img['url'],
@@ -131,18 +131,18 @@ def login_after():
 
     current_app.db.commit()
 
-    user_model = models.User.from_orm(user)
+    # user_model = user.to_dict()
 
-    login_user(user_model, remember=True)
+    login_user(user, remember=True)
 
     return redirect(url_for('core.index'))
 
 @bp.route('/logout')
 @login_required
 def logout():
-    user_model = current_user
-    user = current_app.db.query(models.UserTable)\
-        .get(user_model.db_id)
+    user = current_user
+    # user = current_app.db.query(models.User)\
+    #     .get(user_model.db_id)
 
     user.authenticated = False
     current_app.db.commit()
