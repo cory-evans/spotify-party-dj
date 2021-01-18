@@ -21,6 +21,32 @@ socket.on('state_change', (track) => {
 
 })
 
+socket.on('queue update', (queue) => {
+	console.log('queue length:', queue.length)
+	$('#queue-table').children('.table-row').remove()
+	queue.forEach(track => {
+		var row = $('<div class="table-row"></div>')
+		var result = $('<div class="search-result row"></div>')
+		row.append(result)
+
+
+		var img = $('<img class="col-2"></img>')
+		img.attr('src', select_image(track.album.images, 64))
+
+		var title = $('<span class="col-5"></span>')
+		title.text(track.name)
+
+		var artist = $('<span class="col-5"></span>')
+		artist.text(track.artists[0].name)
+
+		result.append(img)
+		result.append(title)
+		result.append(artist)
+
+		// create_confirm_dialog(row, track.uri)
+		$('#queue-table').append(row)
+	});
+})
 
 function select_image(images, width) {
 	var url = images[0].url
@@ -43,11 +69,12 @@ function on_search_input(search_input) {
 		var now = new Date().getTime()
 		if (now - $(search_input).data('last_oninput') > timeout_ms - 20) {
 			// Search for the tracks
-			if (search_term == '') { return }
+			if (search_term == '') {
+				$('#search-results').children('.table-row').remove()
+				return
+			 }
 
 			spotifyApi.searchTracks(search_term, null, populate_search_results)
-		} else {
-			console.log('skipping ', search_term);
 		}
 	}, timeout_ms);
 }
@@ -58,33 +85,82 @@ function populate_search_results(err, results) {
 		return
 	}
 
-	$('#search-results').html('')
+	function create_confirm_dialog(table_row, track_uri) {
+		var div = $('<div class="confirm row fs-1 d-none"></div>')
+
+		var decline = $('<i class="bg-danger bi bi-x"></i>')
+		var accept = $('<i class="bg-success bi bi-plus"></i>')
+
+		div.append(decline)
+		div.append(accept)
+
+		div.children('i').addClass('col-6 text-center text-light')
+
+		accept.click(() => {
+			add_to_queue(track_uri)
+			hide_dialog(table_row)
+		})
+
+		decline.click(() => {
+			hide_dialog(table_row)
+		})
+
+		$(table_row).append(div)
+	}
+
+	$('#search-results').children('.table-row').remove()
 
 	results.tracks.items.forEach(track => {
-		var tr = document.createElement('tr')
-
-		var img_tr = document.createElement('tr')
-		var img = document.createElement('img')
-
-		img.src = select_image(track.album.images, 64)
-
-		$(img_tr).append(img)
-
-		var title = document.createElement('td')
-		title.innerHTML = track.name
-
-		var artist = document.createElement('td')
-		artist.innerHTML = track.artists[0].name
-
-		var album = document.createElement('td')
-		album.innerHTML = track.album.name
+		var row = $('<div class="table-row"></div>')
+		var result = $('<div class="search-result row"></div>')
+		result.click(() => {
+			show_dialog(row)
+		})
+		row.append(result)
 
 
-		$(tr).append(img_tr)
-		$(tr).append(title)
-		$(tr).append(artist)
-		$(tr).append(album)
+		var img = $('<img class="col-2"></img>')
+		img.attr('src', select_image(track.album.images, 64))
 
-		$('#search-results').append(tr)
+		var title = $('<span class="col-5"></span>')
+		title.text(track.name)
+
+		var artist = $('<span class="col-5"></span>')
+		artist.text(track.artists[0].name)
+
+		result.append(img)
+		result.append(title)
+		result.append(artist)
+
+		create_confirm_dialog(row, track.uri)
+		$('#search-results').append(row)
 	});
+}
+
+function add_to_queue(uri) {
+	console.log('add_to_queue', uri)
+	socket.emit('queue add item', uri)
+}
+
+function show_dialog(row) {
+	const dialog_shown = $(row).data('dialog_shown')
+
+	if (!dialog_shown) {
+		$(row).children('.search-result').addClass('d-none')
+		$(row).children('.confirm').removeClass('d-none')
+	}
+
+	$(row).data('dialog_shown', true)
+}
+
+function hide_dialog(row) {
+	console.log("hide", row)
+	const dialog_shown = $(row).data('dialog_shown')
+
+	if (dialog_shown) {
+		$(row).children('.search-result').removeClass('d-none')
+		$(row).children('.confirm').addClass('d-none')
+	}
+
+	$(row).data('dialog_shown', false)
 }

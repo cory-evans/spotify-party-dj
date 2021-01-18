@@ -1,13 +1,9 @@
 var socket = io()
-var spotifyApi = new SpotifyWebApi()
-
-spotifyApi.setAccessToken(SPOTIFY_ACCESS_TOKEN)
-
 
 function refresh_device_list() {
 	spotifyApi.getMyDevices((err, data) => {
 		if (err) {
-			console.error(err)
+			spotify_handle_err(err)
 			return
 		}
 
@@ -27,7 +23,7 @@ function refresh_device_list() {
 function fetch_currently_playing() {
 	spotifyApi.getMyCurrentPlaybackState((err, data) => {
 		if (err) {
-			console.error(err)
+			spotify_handle_err(err)
 			return
 		}
 		data.item.progress_ms = data.progress_ms
@@ -40,4 +36,4 @@ function fetch_currently_playing() {
 
 setInterval(() => {
 	fetch_currently_playing()
-}, 2531);
+}, 3021);

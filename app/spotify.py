@@ -13,10 +13,28 @@ def _make_headers_for_user():
 
     return raw_headers
 
-def make_request(endpoint, method='GET', headers=None, params=None, data=None):
+def _make_headers_for_party_host():
+    # get the party of the current user
+
+    party_member = current_app.db.query(models.PartyMember)\
+        .filter_by(user=current_user)\
+        .first()
+
+    user = party_member.party.host
+
+    raw_headers = {
+        'Authorization': f'Bearer {user.access_token}'
+    }
+
+    return raw_headers
+
+def make_request(endpoint, method='GET', headers=None, params=None, data=None, as_party_host=False) -> requests.Response:
     base_url = 'https://api.spotify.com/v1'
 
-    raw_headers = _make_headers_for_user()
+    if as_party_host:
+        raw_headers = _make_headers_for_party_host()
+    else:
+        raw_headers = _make_headers_for_user()
 
     if isinstance(headers, dict):
         headers.update(raw_headers)
@@ -37,13 +55,22 @@ def make_request(endpoint, method='GET', headers=None, params=None, data=None):
         req.prepare()
     )
 
-    return resp.json()
+    return resp
 
 def get_track(id: str):
     endpoint = f'/tracks/{id}'
-    return make_request(endpoint)
+    return make_request(endpoint).json()
 
 
-def store_track(track_json: dict):
-    track_obj = models.Track.from_dict(track_json)
-    current_app.db.add(track_json)
+def queue_song(uri: str):
+    params = {
+        'uri': uri
+    }
+    resp = make_request(
+        '/me/player/queue',
+        method='POST',
+        params=params,
+        as_party_host=True
+    )
+
+    return resp.status_code == 204

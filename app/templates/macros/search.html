@@ -1,3 +1,4 @@
+{% from "macros/songtable.html" import songtable %}
 {% macro search() %}
 
 <div class="row">
@@ -5,22 +6,7 @@
 	<div class="col-md-8 col">
 		<input type="text" name="search" id="search-input" class="form-control" oninput="on_search_input(this)">
 		<hr class="mt-2">
-
-		<table id="search-results">
-			<thead>
-				<tr>
-					<th scope="col"></th>
-					<th scope="col">Title</th>
-					<th scope="col">Artists</th>
-					<th scope="col">Album</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr>
-
-				</tr>
-			</tbody>
-		</table>
+		{{ songtable("search-results") }}
 	</div>
 	<div class="col-md-2"></div>
 </div>

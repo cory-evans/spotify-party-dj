@@ -241,7 +241,8 @@ class Party(JSONMixin, Base):
 
     relationship_map = {
         'host': 'User',
-        'currently_playing': 'Track'
+        'currently_playing': 'Track',
+        'queue': 'QueueItem'
     }
 
     db_id = Column(Integer, primary_key=True)
@@ -255,6 +256,8 @@ class Party(JSONMixin, Base):
     currently_playing = relationship('Track')
 
     next_song_is_in_queue = Column(Boolean, default=False)
+
+    queue = relationship('QueueItem', lazy='dynamic')
 
 class PartyMember(JSONMixin, Base):
     __tablename__ = 'partymember'
@@ -277,6 +280,9 @@ class QueueItem(JSONMixin, Base):
     __tablename__ = 'queue'
 
     db_id = Column(Integer, primary_key=True)
+
+    party_id = Column(Integer, ForeignKey('party.db_id'), nullable=False)
+    party = relationship('Party')
 
     track_id = Column(Integer, ForeignKey('track.db_id'), nullable=False)
     track = relationship('Track')

@@ -18,8 +18,6 @@ def index():
         for p in parties
     ]
 
-    print(current_user)
-
     return render_template('index.html', user=current_user, parties=parties_models)
 
 @bp.route('/track/<id>')
@@ -30,7 +28,7 @@ def download_track(id):
     exists = current_app.db.query(models.Track)\
         .filter_by(uri=track.uri)\
         .scalar()
-    print(exists)
+
     if not exists:
         current_app.db.add(track)
         current_app.db.commit()

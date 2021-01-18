@@ -1,6 +1,4 @@
+{% from "macros/songtable.html" import songtable %}
 {% macro queue() %}
-<h1>Queue</h1>
-<ul id="next-tracks" class="list-group list-group-flush">
-
-</ul>
+{{ songtable("queue-table") }}
 {% endmacro %}

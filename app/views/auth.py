@@ -31,8 +31,6 @@ bp = Blueprint('auth', __name__, url_prefix='/auth')
 def login():
     scopes = 'user-read-playback-state user-modify-playback-state user-read-email user-read-private'
 
-    print(scopes)
-
     params = {
         'client_id': current_app.config.get('SPOTIFY_CLIENT_ID'),
         'response_type': 'code',
@@ -42,7 +40,6 @@ def login():
     }
 
     url_params = urlparse.urlencode(params)
-    print(url_params)
 
     return redirect('%s?%s' % ('https://accounts.spotify.com/authorize', url_params))
 
@@ -86,8 +83,6 @@ def login_after():
     user = current_app.db.query(models.User)\
         .filter_by(id=data['id'])\
         .first()
-
-    print(user)
 
     expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=data['expires_in'])
     if not user:
@@ -151,45 +146,32 @@ def logout():
 
     return redirect(url_for('core.index'))
 
-# @bp.route('/access_token')
-# def access_token():
-#     uid = session.get('id')
-#     user = models.User.query.get(uid)
-#     if user:
-#         return jsonify({
-#             'access_token': user.access_token
-#         })
+@bp.route('/refresh_token')
+@login_required
+def refresh_token():
+    user = current_user
 
-#     return jsonify({
-#         'access_token': None
-#     })
+    headers = {
+        'Authorization': current_app.config.get('SPOTIFY_AUTHORIZATION_BASE64')
+    }
+    params = {
+        'grant_type': 'refresh_token',
+        'refresh_token': user.refresh_token
+    }
+    resp = requests.post(
+        'https://accounts.spotify.com/api/token',
+        headers=headers,
+        data=params
+    )
 
-# @bp.route('/refresh_token', methods=['POST'])
-# def refresh_token():
-#     uid = session.get('id')
-#     user = models.User.query.get(uid)
+    data = resp.json()
+    user.access_token = data['access_token']
+    user.token_type = data['token_type']
+    user.scope = data['scope']
+    user.expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=data['expires_in'])
 
-#     headers = {
-#         'Authorization': current_app.config.get('SPOTIFY_AUTHORIZATION_BASE64')
-#     }
-#     params = {
-#         'grant_type': 'refresh_token',
-#         'refresh_token': user.refresh_token
-#     }
-#     resp = requests.post(
-#         'https://accounts.spotify.com/api/token',
-#         headers=headers,
-#         data=params
-#     )
+    current_app.db.commit()
 
-#     data = resp.json()
-#     user.access_token = data['access_token']
-#     user.token_type = data['token_type']
-#     user.scope = data['scope']
-#     user.expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=data['expires_in'])
-
-#     db.session.commit()
-
-#     return jsonify({
-#         'access_token': user.access_token
-#     })
+    return jsonify({
+        'access_token': user.access_token
+    })

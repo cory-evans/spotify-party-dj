@@ -9,7 +9,7 @@ from app.database import SessionLocal, engine
 from app import models
 
 logger = logging.getLogger('werkzeug')
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 
 def create_app():
     app = Flask(__name__)

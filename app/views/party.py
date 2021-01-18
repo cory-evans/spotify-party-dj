@@ -2,6 +2,7 @@ import json
 import random
 import string
 import datetime
+from typing import List
 from flask import (
     Blueprint,
     render_template,
@@ -93,107 +94,112 @@ def join(code: str):
 @socketio.on('connect')
 def on_connect():
     join_room(session['code'])
-    state = get_current_state(session['code'])
+    party = get_party_from_code(session['code'])
+    state = get_current_state(party)
     socketio.emit('state_change', state)
+    socketio.emit('queue update', get_queue(party))
 
 
 @socketio.on('state_change')
 def state_change(currently_playing):
-    track = current_app.db.query(models.Track)\
-        .filter_by(uri=currently_playing['uri'])\
-        .first()
-
-    if not track:
-        # Download track from spotify
-        track_data_from_spotify = spotify.get_track(currently_playing['id'])
-
-        # Insert into db
-        track = models.Track.from_dict(track_data_from_spotify)
-        current_app.db.add(track)
-
-    party = current_app.db.query(models.Party)\
-        .filter_by(id=session['code'])\
-        .first()
-
-    # If track not in database download on add it
-
+    track = ensure_song_exists(currently_playing['uri'])
+    party = get_party_from_code(session['code'])
 
     if party.currently_playing and party.currently_playing.uri != track.uri:
-        # The song has changed
         party.next_song_is_in_queue = False
-        socketio.emit('state_change', track.to_dict(exclude_columns=['db_id']))
+        current_app.db.commit()
+        socketio.emit('state_change', track.to_dict(exclude_columns=['db_id', 'album_id']))
+        socketio.emit('queue update', get_queue(party))
 
-    elif not party.currently_playing:
-        socketio.emit('state_change', track.to_dict(exclude_columns=['db_id']))
+        party.currently_playing = track
+        current_app.db.commit()
+        return
 
-    if track.duration_ms - currently_playing['progress_ms'] <= 10000 and not party.next_song_is_in_queue:
+    if not party.currently_playing:
+        socketio.emit('state_change', track.to_dict(exclude_columns=['db_id', 'album_id']))
+        party.currently_playing = track
+        current_app.db.commit()
+        return
+
+    if not party.next_song_is_in_queue and track.duration_ms - currently_playing['progress_ms'] <= 10000:
         # queue next song
-        print('add next song to queue')
+        track = get_next_song_in_queue(party)
+        if track is not None:
+            spotify.queue_song(track.uri)
         party.next_song_is_in_queue = True
-
-    party.currently_playing = track
-    current_app.db.commit()
+        current_app.db.commit()
 
 
-# @socketio.on('queue add item')
-# def queue_item(uri):
-#     add_song_to_queue(uri)
-#     socketio.emit('queue get', get_queue())
+
+@socketio.on('queue add item')
+def queue_item(uri):
+    party = get_party_from_code(session['code'])
+    add_song_to_queue(party, uri)
+    socketio.emit('queue update', get_queue(party))
 
 
-def get_current_state(party_id):
-    party = current_app.db.query(models.Party)\
-        .filter_by(id=party_id)\
-        .first()
-
+def get_current_state(party):
     if party is None:
         return {}
 
     if party.currently_playing is None:
         return {}
 
-    return party.currently_playing.to_dict(exclude_columns=['db_id'])
+    return party.currently_playing.to_dict(exclude_columns=['db_id', 'album_id'])
 
 
-# def get_queue(party_id):
-#     q = models.Queue.query\
-#         .filter(models.Queue.party_id == party_id)\
-#         .order_by(models.Queue.date_added)\
-#         .all()
+def get_queue(party) -> List[models.Track]:
+    items_in_queue = [
+        qi.track.to_dict(exclude_columns=['db_id', 'album_id'])
+        for qi in party.queue.order_by(models.QueueItem.next_playable.asc())
+    ]
 
-#     data = [
-#         t.data
-#         for t in q
-#     ]
+    return items_in_queue
 
-#     return data
+def add_song_to_queue(party, song_uri):
+    track = ensure_song_exists(song_uri)
 
-# def add_song_to_queue(party_id, song_uri):
-#     queue_item = models.Queue(
-#         party_id=party_id,
-#         track_uri=song_uri
-#     )
+    queue_item = models.QueueItem(
+        party=party,
+        track=track
+    )
 
-#     current_app.db.add(queue_item)
-#     current_app.db.commit()
+    current_app.db.add(queue_item)
+    current_app.db.commit()
 
-# def get_next_song_in_queue(party: models.Party) -> str:
-#     queue_item = models.Queue.query\
-#         .filter(models.Queue.party_id==party.id)\
-#         .order_by(models.Queue.date_added)\
-#         .filter(models.Queue.next_playable > datetime.datetime.utcnow())\
-#         .first()
+def get_next_song_in_queue(party: models.Party) -> models.Track:
+    queue_item = current_app.db.query(models.QueueItem)\
+        .filter_by(party=party)\
+        .order_by(models.QueueItem.next_playable)\
+        .filter(models.QueueItem.next_playable < datetime.datetime.utcnow())\
+        .first()
 
-#     if queue_item is None:
-#         return ''
+    if queue_item is None:
+        return None
 
-#     # Pick a song based on
-#     track_uri = queue_item.track_uri
+    next_song = queue_item.track
 
-#     models.Queue.query\
-#         .filter(models.Queue.id==queue_item.id)\
-#         .delete()
+    current_app.db.delete(queue_item)
+    current_app.db.commit()
 
-#     current_app.db.commit()
+    return next_song
 
-#     return track_uri
+def get_party_from_code(code) -> models.Party:
+    return current_app.db.query(models.Party)\
+        .filter_by(id=code)\
+        .first()
+
+def ensure_song_exists(uri) -> models.Track:
+    track = current_app.db.query(models.Track)\
+        .filter_by(uri=uri)\
+        .first()
+
+    if track is not None:
+        return track
+
+    track_json = spotify.get_track(uri.split(':')[-1])
+    track = models.Track.from_dict(track_json)
+    current_app.db.add(track)
+    current_app.db.commit()
+
+    return track
