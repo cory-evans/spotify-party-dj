@@ -1,39 +1,111 @@
 {% extends 'layouts/base.html' %}
-{% from "macros/mediaplayer.html" import mediaplayer %}
 {% block head %}
-<link rel="stylesheet" href="/static/css/search.css">
-{% if user.is_authenticated %}
-<script>
-	var SPOTIFY_ACCESS_TOKEN = '{{ user.access_token }}'
-	setInterval(() => {
-		refresh_token()
-	}, 30 * 60 * 1000);
-
-	function refresh_token() {
-		fetch('/auth/refresh_token')
-			.then(resp => resp.json())
-			.then(data => {
-				SPOTIFY_ACCESS_TOKEN = data['access_token']
-				spotifyApi.setAccessToken(SPOTIFY_ACCESS_TOKEN)
-			})
-	}
-</script>
-<script src="/static/js/spotify-web-api.js"></script>
-{% endif %}
-
 <script src="/static/js/party.js"></script>
-
-{% if is_host %}
-<script src="/static/js/party-host.js"></script>
-{% endif %}
+<script defer src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@2.8.0/dist/alpine.min.js"></script>
 {% endblock %}
-
 {% block content %}
-<div class="container-fluid">
-	<div class="row">
-		<div class="col-sm-12">
-			{{ mediaplayer() }}
+<main class="max-w-3xl mx-auto">
+	<div class="bg-white p-4 rounded-md mt-4">
+		<div class="h-24 flex space-x-4 items-center">
+			<div>
+				<img src="https://i.scdn.co/image/ab67616d0000b273669e196874273595fb78bb1b" id="album-img"
+				class="flex-none h-24 w-24 object-cover rounded-md">
+			</div>
+			<div class="flex flex-col sm:flex-row">
+				<div class="flex flex-col w-full">
+					<span class="text-lg font-medium leading-5 truncate w-full" id="track-name">
+						Hooked
+					</span>
+					<span id="artist-name">
+						Notion
+					</span>
+					<span class="text-sm text-gray-500 truncate w-full" id="album-name">
+						Album
+					</span>
+				</div>
+
+				<div class="flex-grow-0">
+					<a href="spotify:track:4v7kKFlEDmpVToHOICsXaM" id="track-link"
+						class="px-4 py-2 ring-2 ring-gray-500 ring-inset rounded-md truncate
+						hover:text-white hover:bg-green-500 hover:ring-white">
+						Open in spotify
+					</a>
+				</div>
+			</div>
 		</div>
 	</div>
-</div>
+	<div class="mt-4 bg-gray-100 rounded-md" x-data="{ tab: 'queue' }">
+		<div class="flex flex-nowrap justify-evenly">
+			<button
+				class="block w-full px-4 py-2 rounded-t-md focus:outline-none"
+				:class="{ 'bg-white': tab === 'queue' }"
+				@click="tab = 'queue'"
+			>
+				Queue
+			</button>
+			<button
+				class="block w-full px-4 py-2 rounded-t-md focus:outline-none"
+				:class="{ 'bg-white': tab === 'search' }"
+				@click="tab = 'search'"
+			>
+				Search
+			</button>
+		</div>
+
+		<div x-show="tab === 'search'" class="px-4 pt-3 bg-white pb-4 rounded-b-md">
+			<input type="text" name="search" id="search-input" class="block w-full px-4 lg:px-8 py-2 ring-2 ring-gray-300 ring-inset" placeholder="Search" oninput="on_search_input(this)">
+			<ul id="search-results"
+				class="mt-2 flex flex-col space-y-1 cursor-default overflow-y-auto">
+
+			</ul>
+		</div>
+		<div x-show="tab === 'queue'" class="px-4 pt-3 bg-white pb-4 rounded-b-md">
+			<ul id="queue"
+				class="mt-2 flex flex-col space-y-1 cursor-default overflow-y-auto">
+				<li class="relative h-16 pr-1 sm:pr-4 flex items-center justify-between space-x-1 sm:space-x-4">
+					<img src="https://i.scdn.co/image/ab67616d0000b273669e196874273595fb78bb1b"
+						class="h-16 w-16 object-cover flex-none">
+					<span class="w-full truncate">Hooked</span>
+					<span class="w-full truncate pr-4">Notion</span>
+					<!-- <i class="text-lg p-2 fas fa-plus text-gray-700 hover:text-purple-500 cursor-pointer"></i> -->
+				</li>
+				<li class="relative h-16 pr-1 sm:pr-4 flex items-center justify-between space-x-1 sm:space-x-4">
+					<img src="https://i.scdn.co/image/ab67616d0000b27387e9ef0f7d94bb6b7c4a7e13"
+						class="h-16 w-16 object-cover flex-none">
+					<span class="w-full truncate">Let Me Hold You</span>
+					<span class="w-full truncate pr-4">Netsky, Hybrid Minds</span>
+					<!-- <i class="text-lg p-2 fas fa-plus text-gray-700 hover:text-purple-500 cursor-pointer"></i> -->
+				</li>
+				<li class="relative h-16 pr-1 sm:pr-4 flex items-center justify-between space-x-1 sm:space-x-4">
+					<img src="https://i.scdn.co/image/ab67616d0000b273cb8fb072d2d464d32ea8a97c"
+						class="h-16 w-16 object-cover flex-none">
+					<span class="w-full truncate">Shotgun</span>
+					<span class="w-full truncate pr-4">The Outline</span>
+					<!-- <i class="text-lg p-2 fas fa-plus text-gray-700 hover:text-purple-500 cursor-pointer"></i> -->
+				</li>
+				<li class="relative h-16 pr-1 sm:pr-4 flex items-center justify-between space-x-1 sm:space-x-4">
+					<img src="https://i.scdn.co/image/ab67616d0000b2734719d135efa3d7567c0d7faa"
+						class="h-16 w-16 object-cover flex-none">
+					<span class="w-full truncate">Want You</span>
+					<span class="w-full truncate pr-4">Kanine</span>
+					<!-- <i class="text-lg p-2 fas fa-plus text-gray-700 hover:text-purple-500 cursor-pointer"></i> -->
+				</li>
+				<li class="relative h-16 pr-1 sm:pr-4 flex items-center justify-between space-x-1 sm:space-x-4">
+					<img src="https://i.scdn.co/image/ab67616d0000b27319ffe963dd1fe46e235ee7f7"
+						class="h-16 w-16 object-cover flex-none">
+					<span class="w-full truncate">My Delirium</span>
+					<span class="w-full truncate pr-4">Ladyhawke</span>
+					<!-- <i class="text-lg p-2 fas fa-plus text-gray-700 hover:text-purple-500 cursor-pointer"></i> -->
+				</li>
+				<li class="relative h-16 pr-1 sm:pr-4 flex items-center justify-between space-x-1 sm:space-x-4">
+					<img src="https://i.scdn.co/image/ab67616d0000b27369966efa45b125ed6711b43c"
+						class="h-16 w-16 object-cover flex-none">
+					<span class="w-full truncate">Misery Business</span>
+					<span class="w-full truncate pr-4">Paramore</span>
+					<!-- <i class="text-lg p-2 fas fa-plus text-gray-700 hover:text-purple-500 cursor-pointer"></i> -->
+				</li>
+			</ul>
+		</div>
+	</div>
+</main>
 {% endblock %}
