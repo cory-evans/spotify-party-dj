@@ -1,11 +1,10 @@
 venv/
 __pycache__/
-
-
-settings.py
-
+node_modules/
 
 app/static/images/
+app/static/css/style.css
 .*cache*/
 
-*.pem
+settings.py
+*.db

@@ -1,0 +1,32 @@
+{% extends 'layouts/base.html' %}
+{% block head %}
+{% endblock %}
+{% block content %}
+<main class="flex items-center mt-32">
+	<div class="mx-auto bg-white p-4 rounded-md">
+		<form class="p-4" method="POST">
+			<input type="text"
+				name="code"
+				id="code-input"
+				class="block text-center text-xl p-2 bg-gray-200 rounded-sm uppercase ring-2 ring-gray-300 ring-inset"
+				style="font-family: 'Roboto Mono', monospace;"
+				maxlength="6"
+				placeholder="Enter party code">
+
+			<div class="flex flex-col space-y-2 sm:space-y-0 space-x-2 space-x-reverse sm:flex-row-reverse sm:justify-between items-baseline mt-4">
+				<button type="submit"
+					class="flex-1 w-full sm:w-auto p-2 text-center rounded-md uppercase
+						bg-purple-500 text-white font-bold tracking-wide">
+					Join
+				</button>
+
+				<a href="{{ url_for('party.host') }}"
+					class="flex-1 w-full sm:w-auto p-2 text-center rounded-md uppercase
+						bg-gray-200 text-gray-600">
+					Host
+				</a>
+			</div>
+		</form>
+	</div>
+</main>
+{% endblock %}

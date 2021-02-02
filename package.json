@@ -1,0 +1,25 @@
+{
+  "name": "spotify-party-dj",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tailwind build src/style.css -o app/static/css/style.css"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CoryEvans2324/spotify-party-dj.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CoryEvans2324/spotify-party-dj/issues"
+  },
+  "homepage": "https://github.com/CoryEvans2324/spotify-party-dj#readme",
+  "devDependencies": {
+    "autoprefixer": "^10.2.3",
+    "postcss": "^8.2.4",
+    "tailwindcss": "^2.0.2"
+  }
+}
